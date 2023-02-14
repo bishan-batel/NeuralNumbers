@@ -1,6 +1,7 @@
 package network;
 
 import math.ActivationFunction;
+import math.Matrix;
 
 public abstract class NeuralNetwork
 {
@@ -9,7 +10,7 @@ public abstract class NeuralNetwork
 
 	public abstract double[] feed(double... inputRaw);
 
-	public abstract void train(double[] trainingData, double[] expected);
+	public abstract Matrix train(double[] trainingData, double[] expected);
 
 	public final ActivationFunction getActivationFunction()
 	{

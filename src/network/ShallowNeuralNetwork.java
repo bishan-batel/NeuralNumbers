@@ -5,8 +5,7 @@ import math.Matrix;
 import java.nio.ByteBuffer;
 
 @Deprecated
-public class ShallowNeuralNetwork extends NeuralNetwork
-{
+public class ShallowNeuralNetwork extends NeuralNetwork {
 	private final int inputSize, outputSize, hiddenSize;
 
 	private Matrix inputToHiddenWeights;
@@ -14,8 +13,7 @@ public class ShallowNeuralNetwork extends NeuralNetwork
 	private Matrix hiddenBiases;
 	private Matrix outputBiases;
 
-	public ShallowNeuralNetwork(int inputSize, int hiddenSize, int outputSize)
-	{
+	public ShallowNeuralNetwork(int inputSize, int hiddenSize, int outputSize) {
 		this.inputSize = inputSize;
 		this.outputSize = outputSize;
 		this.hiddenSize = hiddenSize;
@@ -27,8 +25,7 @@ public class ShallowNeuralNetwork extends NeuralNetwork
 		outputBiases = Matrix.random(1, outputSize, -1, 1);
 	}
 
-	public double[] feed(double... inputRaw)
-	{
+	public double[] feed(double... inputRaw) {
 		if (inputRaw.length != inputSize)
 			throw new IllegalArgumentException("Invalid Input Size, Expected " + inputRaw.length + ", got " + inputRaw.length);
 
@@ -41,8 +38,19 @@ public class ShallowNeuralNetwork extends NeuralNetwork
 		return layer.asColumn();
 	}
 
-	public void train(double[] trainingData, double[] expected)
-	{
+	public Matrix train(double[] trainingData, double[] expected) {
+		if (trainingData.length != inputSize)
+			throw new IllegalArgumentException("Invalid Input Size, Expected " + inputSize + ", got " + trainingData.length);
+
+		if (expected.length != outputSize)
+			throw new IllegalArgumentException("Invalid Output Size, Expected " + outputSize + ", got " + expected.length);
+
+
+		// print input & expected
+//		System.out.println("Input: " + Arrays.toString(trainingData));
+//		System.out.println("Expected: " + Arrays.toString(expected));
+//		System.out.println();
+
 		Matrix input = Matrix.asColumn(trainingData);
 
 		Matrix hidden = inputToHiddenWeights.multiply(input).add(hiddenBiases);
@@ -53,7 +61,7 @@ public class ShallowNeuralNetwork extends NeuralNetwork
 
 		Matrix expectedOutput = Matrix.asColumn(expected);
 
-		Matrix error = expectedOutput.subtract(outputActivations);
+		Matrix error = expectedOutput.subtract(outputActivations).multiply(2);
 
 
 		// output layer gradient
@@ -61,7 +69,7 @@ public class ShallowNeuralNetwork extends NeuralNetwork
 			Matrix delActivationToOutput = output.map(activationFunction.getDerivative());
 			Matrix delOutputToWeight = hiddenActivations.transpose();
 
-			Matrix biasGradient = error.dot(delActivationToOutput);
+			Matrix biasGradient = delActivationToOutput.dot(error);
 			Matrix weightGradient = biasGradient.multiply(delOutputToWeight);
 
 
@@ -71,8 +79,8 @@ public class ShallowNeuralNetwork extends NeuralNetwork
 
 		// hidden layer gradient
 		{
-			// delCostToActivation = weights to next layer * next layer's error
-			Matrix delCostToActivation = hiddenToOutputWeights.transpose().multiply(error);
+			error = hiddenToOutputWeights.transpose().multiply(error);
+
 			Matrix delActivationToHidden = hidden.map(activationFunction.getDerivative());
 			Matrix delHiddenToWeight = input.transpose();
 
@@ -82,25 +90,22 @@ public class ShallowNeuralNetwork extends NeuralNetwork
 			hiddenBiases = hiddenBiases.subtract(biasGradient.multiply(learningRate));
 			inputToHiddenWeights = inputToHiddenWeights.subtract(weightGradient.multiply(learningRate));
 		}
+		return input;
 	}
 
-	public int getInputSize()
-	{
+	public int getInputSize() {
 		return inputSize;
 	}
 
-	public int getOutputSize()
-	{
+	public int getOutputSize() {
 		return outputSize;
 	}
 
-	public int getHiddenSize()
-	{
+	public int getHiddenSize() {
 		return hiddenSize;
 	}
 
-	public byte[] asBytes()
-	{
+	public byte[] asBytes() {
 		var byteLen = 0;
 
 		// sizes for each layer,
@@ -128,8 +133,7 @@ public class ShallowNeuralNetwork extends NeuralNetwork
 		return buffer.array();
 	}
 
-	public static ShallowNeuralNetwork fromBytes(byte[] bytes)
-	{
+	public static ShallowNeuralNetwork fromBytes(byte[] bytes) {
 		ByteBuffer buffer = ByteBuffer.wrap(bytes);
 		int inputSize = buffer.getInt();
 		int hiddenSize = buffer.getInt();

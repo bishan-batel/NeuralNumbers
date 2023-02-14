@@ -7,85 +7,66 @@ import network.ShallowNeuralNetwork;
 import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 
-public class SmallDigits
-{
-	public static void main(String[] args) throws URISyntaxException, FileNotFoundException
-	{
-		URI uri = Objects.requireNonNull(SmallDigits.class.getResource("training_data")).toURI();
-		var scanner = new Scanner(new File(uri));
-		var trainingData = new HashMap<Integer, ArrayList<double[]>>();
-
-		while (scanner.hasNextLine())
-		{
-			var line = scanner.nextLine().replace(" ", "").replace(":", "");
-			if (line.startsWith("#")) continue;
-
-			int expected = line.charAt(0) - '0';
-
-			// print out the data as as 3x15 digit
-
-			// convert the data to a float array
-			var data = new double[15];
-			for (int i = 0; i < 15; i++)
-			{
-				data[i] = line.charAt(i + 1) == '1' ? 1 : 0;
-			}
-
-
-			// add the data to the training data
-			if (!trainingData.containsKey(expected))
-				trainingData.put(expected, new ArrayList<>());
-
-			trainingData.get(expected).add(data);
-		}
-
+public class SmallDigits {
+	public static void main(String[] args) throws URISyntaxException, IOException {
+		List<double[][]> trainingData = loadSet(SmallDigits.class.getResource("training_data").toURI());
 
 //		var nn = new ShallowNeuralNetwork(15, 32, 10);
 		var nn = new DeepNeuralNetwork(15, 10, 16, 12);
-		nn.setLearningRate(.1f);
+
+//		nn.setLearningRate(.1);
 		nn.setActivationFunction(ActivationFunction.SIGMOID);
 
-		for (int i = 0; i < 9999; i++)
-		{
-			for (var entry : trainingData.entrySet())
-			{
-				Integer expected = entry.getKey();
-				double[] expectedOutput = new double[10];
-				expectedOutput[expected] = 1;
-
-				for (double[] data : entry.getValue())
-				{
-					nn.train(data, expectedOutput);
-				}
-			}
+		for (int i = 0; i < 9999; i++) {
+			int r = (int) (Math.random() * trainingData.size());
+			double[][] data = trainingData.get(r);
+			nn.train(data[0], data[1]);
 		}
 		System.out.println();
 
 
 		// test
-		var accuracy = 0;
-		var count = 0;
-		for (var entry : trainingData.entrySet())
-		{
-			Integer expected = entry.getKey();
-
-			for (double[] data : entry.getValue())
-			{
-				double[] output = nn.feed(data);
-				int maxIndex = 0;
-				for (int i = 0; i < output.length; i++)
-					if (output[i] > output[maxIndex]) maxIndex = i;
-
-				if (maxIndex == expected) accuracy++;
-
-				count++;
-			}
-		}
-
-		System.out.println("Accuracy: " + ((float) accuracy / count));
+//		System.out.println("Accuracy: " + ((float) accuracy / count));
 
 		var drawer = new DigitDrawer(nn);
+	}
+
+	private static List<double[][]> loadSet(URI path) throws IOException {
+		var data = new ArrayList<double[][]>();
+
+		// for all lines
+		for (var line : Files.readAllLines(Paths.get(path))) {
+			// skip blanks
+			if (line.isBlank()) continue;
+
+			String inputStr = line.substring(0, 15);
+			String outputStr = line.substring(16);
+
+			double[] input = new double[15];
+			double[] output = new double[10];
+
+			for (int i = 0; i < 15; i++) {
+				input[i] = inputStr.charAt(i) - '0';
+				System.out.print(input[i] == 1 ? '█' : ' ');
+				if (i % 3 == 2) System.out.println();
+			}
+
+
+			int highest = 0;
+			for (int i = 0; i < 10; i++) {
+				output[i] = outputStr.charAt(i) - '0';
+
+				if (output[i] == 1) highest = i;
+			}
+
+			System.out.println("output" + highest);
+
+			data.add(new double[][]{input, output});
+		}
+		return data;
 	}
 }

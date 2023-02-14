@@ -3,8 +3,7 @@ package math;
 import java.nio.ByteBuffer;
 import java.util.function.Function;
 
-public class Matrix
-{
+public class Matrix {
 	public final int rows, columns;
 
 	private final double[][] values;
@@ -16,8 +15,7 @@ public class Matrix
 	/**
 	 * Creates a new math.Matrix with the given width and height
 	 */
-	public Matrix(int rows, int column)
-	{
+	public Matrix(int rows, int column) {
 		this.rows = rows;
 		this.columns = column;
 
@@ -36,26 +34,25 @@ public class Matrix
 	/**
 	 * Creates a new math.Matrix a new column matrix with the given values
 	 */
-	public static Matrix asColumn(double[] array)
-	{
-		var matrix = new Matrix(1, array.length);
-		for (int i = 0; i < array.length; i++)
-		{
-			matrix.set(0, i, array[i]);
+	public static Matrix asColumn(double[] array) {
+		Matrix matrix = Matrix.column(array.length);
+		for (int i = 0; i < array.length; i++) {
+			matrix.values[i][0] = array[i];
 		}
 		return matrix;
+	}
+
+	public static Matrix column(int size) {
+		return new Matrix(size, 1);
 	}
 
 	/**
 	 * Creates a new math.Matrix with random values between min and max
 	 */
-	public static Matrix random(int width, int height, double min, double max)
-	{
+	public static Matrix random(int width, int height, double min, double max) {
 		var matrix = new Matrix(width, height);
-		for (int i = 0; i < width; i++)
-		{
-			for (int j = 0; j < height; j++)
-			{
+		for (int i = 0; i < width; i++) {
+			for (int j = 0; j < height; j++) {
 				matrix.set(i, j, Math.random() * (max - min) + min);
 			}
 		}
@@ -64,8 +61,7 @@ public class Matrix
 
 	// arithmetic operations
 
-	public Matrix add(Matrix other)
-	{
+	public Matrix add(Matrix other) {
 		if (rows != other.rows || columns != other.columns)
 			throw new UnsupportedOperationException("Invalid math.Matrix Size, Expected " + rows + "x" + columns + ", got " + other.rows + "x" + other.columns);
 
@@ -78,8 +74,7 @@ public class Matrix
 		return result;
 	}
 
-	public Matrix subtract(Matrix other)
-	{
+	public Matrix subtract(Matrix other) {
 		if (rows != other.rows || columns != other.columns)
 			throw new UnsupportedOperationException("Invalid operation between " + rows + "x" + columns + " and " + other.rows + "x" + other.columns + " matrices");
 		var result = new Matrix(rows, columns);
@@ -92,42 +87,32 @@ public class Matrix
 		return result;
 	}
 
-	// math.Matrix multiplication
-	public Matrix multiply(Matrix other)
-	{
-		if (rows != other.columns)
+	public Matrix multiply(Matrix other) {
+		if (columns != other.rows)
 			throw new UnsupportedOperationException("Invalid operation between " + rows + "x" + columns + " and " + other.rows + "x" + other.columns + " matrices");
 
-		var result = new Matrix(other.rows, columns);
+		var result = new Matrix(rows, other.columns);
 
-		for (int i = 0; i < other.rows; i++)
-		{
-			for (int j = 0; j < columns; j++)
-			{
-				double sum = 0;
-				for (int k = 0; k < rows; k++)
-					sum += get(k, j) * other.get(i, k);
+		// for each element in the matrix, multiply the corresponding element in the other matrix
+		for (int i = 0; i < rows; i++)
+			for (int j = 0; j < other.columns; j++)
+				for (int k = 0; k < columns; k++)
+					result.set(i, j, result.get(i, j) + get(i, k) * other.get(k, j));
 
-				result.set(i, j, sum);
-			}
-		}
 		return result;
 	}
 
 
-	public Matrix multiply(double scalar)
-	{
+	public Matrix multiply(double scalar) {
 		return map(x -> x * scalar);
 	}
 
-	public Matrix divide(double scalar)
-	{
+	public Matrix divide(double scalar) {
 		return multiply(1f / scalar);
 	}
 
 	// Dot Product
-	public Matrix dot(Matrix other)
-	{
+	public Matrix dot(Matrix other) {
 		if (rows != other.rows || columns != other.columns)
 			throw new UnsupportedOperationException("Invalid operation between " + rows + "x" + columns + " and " + other.rows + "x" + other.columns + " matrices");
 
@@ -141,8 +126,7 @@ public class Matrix
 	}
 
 	// Maps all values in the matrix to a new value with map()
-	public Matrix map(Function<Double, Double> map)
-	{
+	public Matrix map(Function<Double, Double> map) {
 		var result = new Matrix(rows, columns);
 
 		for (int i = 0; i < rows; i++)
@@ -152,8 +136,7 @@ public class Matrix
 	}
 
 	// Rotates the matrix, switching rows & columns
-	public Matrix transpose()
-	{
+	public Matrix transpose() {
 		var result = new Matrix(columns, rows);
 
 		for (int i = 0; i < rows; i++)
@@ -163,64 +146,55 @@ public class Matrix
 	}
 
 
-	public void set(int r, int c, double value)
-	{
+	public void set(int r, int c, double value) {
 		values[r][c] = value;
 	}
 
-	public double get(int r, int c)
-	{
+	public double get(int r, int c) {
 		return values[r][c];
 	}
 
-	public double[] asColumn()
-	{
-		var out = new double[columns];
-		for (int i = 0; i < columns; i++)
-		{
-			out[i] = get(0, i);
+	public double[] asColumn() {
+		if (columns != 1)
+			throw new UnsupportedOperationException("Invalid operation, Expected " + rows + "x" + columns + " to be a column matrix");
+
+		var result = new double[rows];
+		for (int i = 0; i < rows; i++) {
+			result[i] = values[i][0];
 		}
-		return out;
+		return result;
 	}
 
-	public double[] asRow()
-	{
+	public double[] asRow() {
 		var out = new double[rows];
-		for (int i = 0; i < rows; i++)
-		{
+		for (int i = 0; i < rows; i++) {
 			out[i] = get(i, 0);
 		}
 		return out;
 	}
 
-	public byte[] asBytes()
-	{
+	public byte[] asBytes() {
 		ByteBuffer buffer = ByteBuffer.allocate(BYTES);
 		return putBytes(buffer);
 	}
 
-	public byte[] putBytes(ByteBuffer buffer)
-	{
+	public byte[] putBytes(ByteBuffer buffer) {
 		buffer.putInt(rows);
 		buffer.putInt(columns);
 
-		for (int i = 0; i < rows; i++)
-		{
-			for (int j = 0; j < columns; j++)
-			{
+		for (int i = 0; i < rows; i++) {
+			for (int j = 0; j < columns; j++) {
 				buffer.putDouble(get(i, j));
 			}
 		}
 		return buffer.array();
 	}
 
-	public static Matrix fromBytes(byte[] bytes)
-	{
+	public static Matrix fromBytes(byte[] bytes) {
 		return fromByteBuffer(ByteBuffer.wrap(bytes));
 	}
 
-	public static Matrix fromByteBuffer(ByteBuffer buffer)
-	{
+	public static Matrix fromByteBuffer(ByteBuffer buffer) {
 		// check if there is enough space for 2 ints
 		if (buffer.capacity() - buffer.position() < Integer.BYTES * 2)
 			throw new IllegalArgumentException("Malformed bytes for math.Matrix");
@@ -234,14 +208,22 @@ public class Matrix
 
 		var mat = new Matrix(width, height);
 
-		for (int i = 0; i < width; i++)
-		{
-			for (int j = 0; j < height; j++)
-			{
+		for (int i = 0; i < width; i++) {
+			for (int j = 0; j < height; j++) {
 				mat.set(i, j, buffer.getDouble());
 			}
 		}
 
 		return new Matrix(width, height);
+	}
+
+	public double sum() {
+		double sum = 0;
+		for (int i = 0; i < rows; i++) {
+			for (int j = 0; j < columns; j++) {
+				sum += get(i, j);
+			}
+		}
+		return sum;
 	}
 }
