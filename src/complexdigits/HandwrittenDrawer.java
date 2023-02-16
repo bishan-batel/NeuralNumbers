@@ -9,11 +9,13 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.util.Arrays;
 
-public class HandwrittenDrawer extends Canvas implements MouseMotionListener, MouseListener {
+public class HandwrittenDrawer extends Canvas implements MouseMotionListener, MouseListener
+{
 	public double[] data;
 	private final NeuralNetwork network;
 
-	public HandwrittenDrawer(NeuralNetwork network) {
+	public HandwrittenDrawer(NeuralNetwork network)
+	{
 		setSize(600, 600);
 		this.network = network;
 		data = new double[ComplexDigits.IMAGE_RES * ComplexDigits.IMAGE_RES];
@@ -22,12 +24,15 @@ public class HandwrittenDrawer extends Canvas implements MouseMotionListener, Mo
 		addMouseMotionListener(this);
 	}
 
-	private void feed() {
+	private void feed()
+	{
 		double[] guess = network.feed(data);
 
 		int max = 0;
-		for (int i = 0; i < guess.length; i++) {
-			if (guess[i] > guess[max]) {
+		for (int i = 0; i < guess.length; i++)
+		{
+			if (guess[i] > guess[max])
+			{
 				max = i;
 			}
 		}
@@ -39,8 +44,10 @@ public class HandwrittenDrawer extends Canvas implements MouseMotionListener, Mo
 		((JFrame) SwingUtilities.getWindowAncestor(this)).setTitle("Complex Digits - " + max);
 	}
 
-	private void update() {
-		if (network != null) {
+	private void update()
+	{
+		if (network != null)
+		{
 			new Thread(this::feed).start();
 		}
 
@@ -53,8 +60,10 @@ public class HandwrittenDrawer extends Canvas implements MouseMotionListener, Mo
 		var cellHeight = getHeight() / ComplexDigits.IMAGE_RES;
 
 		// draw the data
-		for (var i = 0; i < ComplexDigits.IMAGE_RES; i++) {
-			for (var j = 0; j < ComplexDigits.IMAGE_RES; j++) {
+		for (var i = 0; i < ComplexDigits.IMAGE_RES; i++)
+		{
+			for (var j = 0; j < ComplexDigits.IMAGE_RES; j++)
+			{
 				int x = j * (getWidth() / ComplexDigits.IMAGE_RES);
 				int y = i * (getHeight() / ComplexDigits.IMAGE_RES);
 
@@ -66,13 +75,16 @@ public class HandwrittenDrawer extends Canvas implements MouseMotionListener, Mo
 	}
 
 	@Override
-	public void repaint() {
+	public void repaint()
+	{
 		update();
 	}
 
-	private void drawGrid(Graphics g) {
+	private void drawGrid(Graphics g)
+	{
 		g.setColor(Color.GRAY);
-		for (int i = 0; i < ComplexDigits.IMAGE_RES; i++) {
+		for (int i = 0; i < ComplexDigits.IMAGE_RES; i++)
+		{
 			var j = i * (getWidth() / ComplexDigits.IMAGE_RES);
 			g.drawLine(0, j, getWidth(), j);
 			g.drawLine(j, 0, j, getHeight());
@@ -82,22 +94,27 @@ public class HandwrittenDrawer extends Canvas implements MouseMotionListener, Mo
 	private boolean isDrawing = false;
 
 	@Override
-	public void mouseClicked(MouseEvent e) {
-		if (e.isControlDown()) {
+	public void mouseClicked(MouseEvent e)
+	{
+		if (e.isControlDown())
+		{
 			Arrays.fill(data, 0);
 		}
 	}
 
 	int bruhSize = 2;
 
-	public void draw(MouseEvent e) {
+	public void draw(MouseEvent e)
+	{
 		var x = e.getX() / (getWidth() / ComplexDigits.IMAGE_RES);
 		var y = e.getY() / (getHeight() / ComplexDigits.IMAGE_RES);
 
 		double delta = (e.isAltDown() ? -1 : 1) * 0.2;
 		// circular brush size that lightens/darkens the pixel in a circle
-		for (int i = -bruhSize; i < bruhSize; i++) {
-			for (int j = -bruhSize; j < bruhSize; j++) {
+		for (int i = -bruhSize; i < bruhSize; i++)
+		{
+			for (int j = -bruhSize; j < bruhSize; j++)
+			{
 
 				// check if pixel is in bounds of canvas
 				if (x + i < 0 || x + i >= ComplexDigits.IMAGE_RES || y + j < 0 || y + j >= ComplexDigits.IMAGE_RES)
@@ -124,38 +141,46 @@ public class HandwrittenDrawer extends Canvas implements MouseMotionListener, Mo
 	}
 
 	@Override
-	public void mousePressed(MouseEvent e) {
+	public void mousePressed(MouseEvent e)
+	{
 		isDrawing = true;
 		draw(e);
 	}
 
 	@Override
-	public void mouseReleased(MouseEvent e) {
+	public void mouseReleased(MouseEvent e)
+	{
 		isDrawing = false;
 	}
 
 	@Override
-	public void mouseExited(MouseEvent e) {
+	public void mouseExited(MouseEvent e)
+	{
 		isDrawing = false;
 	}
 
 	@Override
-	public void mouseDragged(MouseEvent e) {
-		if (isDrawing) {
+	public void mouseDragged(MouseEvent e)
+	{
+		if (isDrawing)
+		{
 			draw(e);
 		}
 	}
 
 	@Override
-	public void mouseEntered(MouseEvent e) {
+	public void mouseEntered(MouseEvent e)
+	{
 	}
 
 
 	@Override
-	public void mouseMoved(MouseEvent e) {
+	public void mouseMoved(MouseEvent e)
+	{
 	}
 
-	public static void main(String[] args) {
+	public static void main(String[] args)
+	{
 		var frame = new JFrame("Handwritten Digit Drawer");
 		frame.add(new HandwrittenDrawer(null));
 		frame.pack();
