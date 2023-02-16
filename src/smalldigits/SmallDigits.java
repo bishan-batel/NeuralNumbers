@@ -10,13 +10,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
-public class SmallDigits
-{
+public class SmallDigits {
 	public static final int TRAINING_LIMIT = 20000;
 	public static final Path NETWORK_FILE = Paths.get("networks/small_digits" + ".dat");
 
-	public static void main(String[] args) throws IOException
-	{
+	public static void main(String[] args) throws IOException {
 		var kb = new Scanner(System.in);
 
 		System.out.print("Do you want to load the network from file? (y/n): ");
@@ -33,8 +31,7 @@ public class SmallDigits
 		var totalError = 0.0;
 
 		// for all test data
-		for (double[][] data : testData)
-		{
+		for (double[][] data : testData) {
 			// get response from network
 			double[] result = nn.feed(data[0]);
 
@@ -48,8 +45,7 @@ public class SmallDigits
 			totalPerDigit[expectedDigit]++;
 
 			// if correct then add to total correct for that digit & total correct
-			if (resultDigit == expectedDigit)
-			{
+			if (resultDigit == expectedDigit) {
 				correct[expectedDigit]++;
 				totalCorrect++;
 			}
@@ -64,8 +60,7 @@ public class SmallDigits
 		}
 
 		// print all the data
-		for (int i = 0; i < 10; i++)
-		{
+		for (int i = 0; i < 10; i++) {
 			System.out.print("Accuracy for " + i + ": " + (int) (100 * (float) correct[i] / totalPerDigit[i]) + "%");
 			System.out.println(" Error: " + (int) (100 * errors[i] / totalPerDigit[i]) + "%");
 		}
@@ -83,35 +78,35 @@ public class SmallDigits
 			nn.writeToFile(NETWORK_FILE);
 	}
 
-	public static DeepNeuralNetwork createAndTrain() throws IOException
-	{
+	public static DeepNeuralNetwork createAndTrain() throws IOException {
 		List<double[][]> trainingData = loadSet("training/small_digits.csv");
-		var nn = new DeepNeuralNetwork(15, 10, 16, 16);
+		var nn = new DeepNeuralNetwork(15, 10, 12);
 
 		nn.setLearningRate(.1);
 		nn.setActivationFunction(ActivationFunction.SIGMOID);
 
-		for (int i = 0; i < TRAINING_LIMIT; i++)
-		{
+		System.out.println("Training...");
+
+		for (int i = 0; i < TRAINING_LIMIT; i++) {
 			// pick random training data
 			int r = (int) (Math.random() * trainingData.size());
 			double[][] data = trainingData.get(r);
 			nn.train(data[0], data[1]);
+
+			System.out.print("\rTraining " + i + "/" + TRAINING_LIMIT);
 		}
 		System.out.println();
 		return nn;
 	}
 
-	private static List<double[][]> loadSet(String path) throws IOException
-	{
+	private static List<double[][]> loadSet(String path) throws IOException {
 		List<String> lines = Files.readAllLines(Paths.get(path));
 		var data = new ArrayList<double[][]>();
 
 		// remove CSV header
 		lines = lines.subList(1, lines.size());
 
-		for (var line : lines)
-		{
+		for (var line : lines) {
 			String[] parts = line.split(",");
 			String inputStr = parts[0];
 			String outputStr = parts[1];

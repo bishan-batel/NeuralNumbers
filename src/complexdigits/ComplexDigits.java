@@ -15,24 +15,22 @@ import java.nio.file.Paths;
 import java.util.*;
 
 
-public final class ComplexDigits
-{
-	public static final int TRAINING_SET_SIZE_COEFF = 69;
+public final class ComplexDigits {
+	public static final int TRAINING_SET_SIZE_COEFF = 100;
 	public final static int IMAGE_RES = 28;
 	public final static int OUTPUT_SIZE = 10;
-	private final static Path FILE = Paths.get("networks/complex_digits.dat");
-	private final static double LEARNING_RATE = 0.0001;
+	public final static Path FILE = Paths.get("networks/complex_digits.dat");
+	private final static double LEARNING_RATE = 0.001;
+	public final static char[] LOADING_CHARS = new char[]{'|', '/', '-', '\\'};
 
 	private static DeepNeuralNetwork nn;
 
-	public static void main(String[] args) throws URISyntaxException, IOException
-	{
+	public static void main(String[] args) throws URISyntaxException, IOException {
 		var kb = new Scanner(System.in);
 
 		System.out.print("Load network from file? (y/n): ");
 
-		if (kb.nextLine().equals("y"))
-		{
+		if (kb.nextLine().equals("y")) {
 			System.out.println("Enter file name:");
 			nn = DeepNeuralNetwork.readFromFile(FILE);
 
@@ -44,15 +42,13 @@ public final class ComplexDigits
 			System.out.println("Hidden layer sizes: " + Arrays.toString(nn.getHiddenSizes()));
 
 			// ask if the user wants to train the network
-			System.out.println("Train network? (y/n)");
-			if (kb.nextLine().equals("y"))
-			{
+			System.out.print("Train network? (y/n): ");
+			if (kb.nextLine().equals("y")) {
 				ComplexDigits.train();
 			}
 
-		} else
-		{
-			nn = new DeepNeuralNetwork(IMAGE_RES * IMAGE_RES, OUTPUT_SIZE, 64, 32, 24, 16);
+		} else {
+			nn = new DeepNeuralNetwork(IMAGE_RES * IMAGE_RES, OUTPUT_SIZE, 32, 24, 16);
 			nn.setActivationFunction(ActivationFunction.SIGMOID);
 			nn.setLearningRate(LEARNING_RATE);
 
@@ -66,8 +62,7 @@ public final class ComplexDigits
 		nn.writeToFile(FILE);
 	}
 
-	private static void testNetwork() throws FileNotFoundException, URISyntaxException
-	{
+	private static void testNetwork() throws FileNotFoundException, URISyntaxException {
 		System.out.println("Testing...");
 
 		List<Data> testData = loadData("training/handwritten.csv");
@@ -77,15 +72,13 @@ public final class ComplexDigits
 		int[] count = new int[OUTPUT_SIZE];
 		int total = 0, correct = 0;
 
-		for (Data data : testData)
-		{
+		for (Data data : testData) {
 			count[data.expected]++;
 
-			double[] output = nn.feed(data.input);
+			double[] output = nn.feed(data.getMalformed());
 
 
-			if (NeuralNetwork.largestIndex(output) == data.expected)
-			{
+			if (NeuralNetwork.largestIndex(output) == data.expected) {
 				accuracy[data.expected]++;
 				correct++;
 			}
@@ -93,8 +86,7 @@ public final class ComplexDigits
 		}
 
 		// print the accuracy for each digit
-		for (int i = 0; i < nn.getOutputSize(); i++)
-		{
+		for (int i = 0; i < nn.getOutputSize(); i++) {
 			System.out.print("Accuracy for " + i + ": " + (int) (100 * (float) accuracy[i] / count[i]) + "%");
 			// fraction
 			System.out.println(" (" + accuracy[i] + "/" + count[i] + ")");
@@ -104,89 +96,90 @@ public final class ComplexDigits
 		System.out.println("Total accuracy: " + (int) (100 * (float) correct / total) + "%");
 	}
 
-	public static void train() throws URISyntaxException, FileNotFoundException
-	{
+	public static void train() throws FileNotFoundException {
 		// load training data
 		List<Data> trainingData = loadData("training/handwritten.csv");
 
 		int total = TRAINING_SET_SIZE_COEFF * trainingData.size();
+//		int total = trainingData.size();
 		System.out.println("Training for " + total + " samples");
 
 		double error = 1;
 
-		for (int i = 0; i < total; i++)
-		{
+		for (int i = 0; i < total; i++) {
 			// get random data
 			Data data = trainingData.get((int) (Math.random() * trainingData.size()));
 
 			// print training message
-			System.out.print("\rTraining... " + (int) ((double) i++ / total * 100) + "%" + " ");
-//			System.out.print(LOADING_CHARS[i % LOADING_CHARS.length]);
+			System.out.print("\r" + LOADING_CHARS[i % LOADING_CHARS.length]);
+			System.out.print(" Training... " + (int) ((double) i++ / total * 100) + "%" + " ");
 			System.out.print("  Error: " + (int) (error * 100));
 
 			double[] expectedOutput = new double[OUTPUT_SIZE];
 			expectedOutput[data.expected] = 1;
-			error = nn.train(data.input, expectedOutput).sum();
+			error = nn.train(data.getMalformed(), expectedOutput).sum();
 		}
-		System.out.println();
-
+		System.out.println("\rTraining... 100%  Error: " + (int) (error * 100));
 	}
 
-	public static void startDrawer()
-	{
-		var frame = new JFrame("Handwritten Digit Drawer");
-		var hd = new HandwrittenDrawer(nn);
-		frame.add(hd);
-		frame.pack();
-		frame.setResizable(false);
-		frame.setLocationRelativeTo(null);
-		frame.setVisible(true);
+	public static void startDrawer() {
+		var frame = new HandwrittenDrawer(nn);
 
 		// pause until the frame is closed
-		while (frame.isVisible())
-		{
-			try
-			{
+		while (frame.isVisible()) {
+			try {
 				Thread.sleep(100);
-			} catch (InterruptedException e)
-			{
+			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 		}
 	}
 
-	public static List<Data> loadData(String path) throws FileNotFoundException
-	{
+	public static List<Data> loadData(String path) throws FileNotFoundException {
 		var scanner = new Scanner(new File(path));
 		var trainingData = new ArrayList<Data>();
 
 		scanner.nextLine();
-		while (scanner.hasNextLine())
-		{
+
+		System.out.println("Loading data from '" + path + "'. . .");
+
+		int count = 0;
+
+		while (scanner.hasNextLine()) {
+			System.out.print("\r" + LOADING_CHARS[count++ % LOADING_CHARS.length]);
+			System.out.print(" " + count + " samples loaded");
+
 			String[] data = scanner.nextLine().split(",");
 			int expected = Integer.parseInt(data[0]);
 
 			double[] input = new double[IMAGE_RES * IMAGE_RES];
-			for (int i = 0; i < IMAGE_RES * IMAGE_RES; i++)
-			{
+			for (int i = 0; i < IMAGE_RES * IMAGE_RES; i++) {
 				input[i] = Double.parseDouble(data[i + 1]) / 255;
 			}
 
-			trainingData.add(new Data(expected, input));
+			double[] clone = input.clone();
+			trainingData.add(new Data(expected, clone));
 		}
+		System.out.println("\r" + count + " samples loaded");
 
 		return trainingData;
 	}
 
-	public static class Data
-	{
+	public static class Data {
 		int expected;
-		double[] input;
+		private double[] input;
 
-		public Data(int expected, double[] input)
-		{
+		public Data(int expected, double[] input) {
 			this.expected = expected;
+
 			this.input = input;
+//			Malformer.malform(input);
+		}
+
+		public double[] getMalformed() {
+			double[] clone = input.clone();
+			Malformer.malform(clone);
+			return clone;
 		}
 	}
 }

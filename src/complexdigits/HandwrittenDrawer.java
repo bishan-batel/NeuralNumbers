@@ -1,5 +1,6 @@
 package complexdigits;
 
+import network.DeepNeuralNetwork;
 import network.NeuralNetwork;
 
 import javax.swing.*;
@@ -7,65 +8,88 @@ import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+import java.io.IOException;
 import java.util.Arrays;
 
-public class HandwrittenDrawer extends Canvas implements MouseMotionListener, MouseListener
-{
+public class HandwrittenDrawer extends JFrame implements MouseMotionListener, MouseListener {
 	public double[] data;
 	private final NeuralNetwork network;
+	protected final Canvas canvas;
+	protected final JLabel label;
 
-	public HandwrittenDrawer(NeuralNetwork network)
-	{
-		setSize(600, 600);
+	public HandwrittenDrawer(NeuralNetwork network) {
 		this.network = network;
 		data = new double[ComplexDigits.IMAGE_RES * ComplexDigits.IMAGE_RES];
 
-		addMouseListener(this);
-		addMouseMotionListener(this);
+		label = new JLabel("0");
+		label.setFont(new Font("agave", Font.PLAIN, 40));
+		label.setForeground(Color.WHITE);
+		label.setHorizontalAlignment(SwingConstants.RIGHT);
+
+		canvas = new Canvas();
+		canvas.setPreferredSize(new Dimension(600, 600));
+		canvas.setSize(600, 600);
+		canvas.addMouseMotionListener(this);
+		canvas.addMouseListener(this);
+
+
+		add(label, BorderLayout.WEST);
+		add(canvas, BorderLayout.CENTER);
+
+		setSize(700, 600);
+		getContentPane().setBackground(Color.BLACK);
+		setResizable(false);
+		setLocationRelativeTo(null);
+		setVisible(true);
 	}
 
-	private void feed()
-	{
+	private void feed() {
 		double[] guess = network.feed(data);
 
-		int max = 0;
-		for (int i = 0; i < guess.length; i++)
-		{
-			if (guess[i] > guess[max])
-			{
-				max = i;
-			}
+		int highest = NeuralNetwork.largestIndex(guess);
+
+
+		StringBuilder text = new StringBuilder("<html>Output<br>");
+
+		// append highest guest
+		text.append("<bold>").append(highest).append(":").append((int) (guess[highest] * 100)).append("%</bold><br><br>");
+
+		int b = 100;
+
+		for (int i = 0; i < guess.length; i++) {
+			// interpolate between red to green based on output
+			int g = (int) (255 * guess[i]);
+			int r = (int) (255 * (1 - guess[i]));
+
+			String hex = String.format("%02x%02x%02x", r, g, b);
+
+			text.append("<font color=\"#").append(hex).append("\">").append(i).append(":").append((int) (guess[i] * 100)).append("%</font><br>");
 		}
 
-//		System.out.println(Arrays.toString(guess));
-//		System.out.println("Guess: " + max);
-//
-		// update title
-		((JFrame) SwingUtilities.getWindowAncestor(this)).setTitle("Complex Digits - " + max);
+		text.append("</html>");
+
+		label.setText(text.toString());
+		setTitle("Complex Digits - " + highest);
 	}
 
-	private void update()
-	{
-		if (network != null)
-		{
+	private void update() {
+		if (network != null) {
 			new Thread(this::feed).start();
 		}
 
-		Graphics g = getGraphics();
+		Graphics g = canvas.getGraphics();
 		if (g == null) return;
 		g.setColor(Color.BLACK);
-		g.fillRect(0, 0, getWidth(), getHeight());
+		g.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
-		var cellWidth = getWidth() / ComplexDigits.IMAGE_RES;
-		var cellHeight = getHeight() / ComplexDigits.IMAGE_RES;
+		var cellWidth = canvas.getWidth() / ComplexDigits.IMAGE_RES;
+		var cellHeight = canvas.getHeight() / ComplexDigits.IMAGE_RES;
 
 		// draw the data
-		for (var i = 0; i < ComplexDigits.IMAGE_RES; i++)
-		{
-			for (var j = 0; j < ComplexDigits.IMAGE_RES; j++)
-			{
-				int x = j * (getWidth() / ComplexDigits.IMAGE_RES);
-				int y = i * (getHeight() / ComplexDigits.IMAGE_RES);
+		for (var i = 0; i < ComplexDigits.IMAGE_RES; i++) {
+			for (var j = 0; j < ComplexDigits.IMAGE_RES; j++) {
+				int x = j * (canvas.getWidth() / ComplexDigits.IMAGE_RES);
+				int y = i * (canvas.getHeight() / ComplexDigits.IMAGE_RES);
 
 				int brightness = (int) (data[i * ComplexDigits.IMAGE_RES + j] * 255);
 				g.setColor(new Color(brightness, brightness, brightness));
@@ -75,46 +99,39 @@ public class HandwrittenDrawer extends Canvas implements MouseMotionListener, Mo
 	}
 
 	@Override
-	public void repaint()
-	{
+	public void repaint() {
 		update();
 	}
 
-	private void drawGrid(Graphics g)
-	{
+	private void drawGrid(Graphics g) {
 		g.setColor(Color.GRAY);
-		for (int i = 0; i < ComplexDigits.IMAGE_RES; i++)
-		{
-			var j = i * (getWidth() / ComplexDigits.IMAGE_RES);
-			g.drawLine(0, j, getWidth(), j);
-			g.drawLine(j, 0, j, getHeight());
+		for (int i = 0; i < ComplexDigits.IMAGE_RES; i++) {
+			var j = i * (canvas.getWidth() / ComplexDigits.IMAGE_RES);
+			g.drawLine(0, j, canvas.getWidth(), j);
+			g.drawLine(j, 0, j, canvas.getHeight());
 		}
 	}
 
 	private boolean isDrawing = false;
 
 	@Override
-	public void mouseClicked(MouseEvent e)
-	{
-		if (e.isControlDown())
-		{
+	public void mouseClicked(MouseEvent e) {
+		if (e.isControlDown()) {
 			Arrays.fill(data, 0);
 		}
 	}
 
 	int bruhSize = 2;
 
-	public void draw(MouseEvent e)
-	{
-		var x = e.getX() / (getWidth() / ComplexDigits.IMAGE_RES);
-		var y = e.getY() / (getHeight() / ComplexDigits.IMAGE_RES);
+	public void draw(MouseEvent e) {
+		var x = e.getX() / (canvas.getWidth() / ComplexDigits.IMAGE_RES);
+		var y = e.getY() / (canvas.getHeight() / ComplexDigits.IMAGE_RES);
 
-		double delta = (e.isAltDown() ? -1 : 1) * 0.2;
+		double delta = (e.isAltDown() ? -1 : 1) * 0.42;
+
 		// circular brush size that lightens/darkens the pixel in a circle
-		for (int i = -bruhSize; i < bruhSize; i++)
-		{
-			for (int j = -bruhSize; j < bruhSize; j++)
-			{
+		for (int i = -bruhSize; i < bruhSize; i++) {
+			for (int j = -bruhSize; j < bruhSize; j++) {
 
 				// check if pixel is in bounds of canvas
 				if (x + i < 0 || x + i >= ComplexDigits.IMAGE_RES || y + j < 0 || y + j >= ComplexDigits.IMAGE_RES)
@@ -137,55 +154,56 @@ public class HandwrittenDrawer extends Canvas implements MouseMotionListener, Mo
 			}
 		}
 
+		if (e.isShiftDown()) {
+			Malformer.malform(data);
+		}
+
 		update();
 	}
 
 	@Override
-	public void mousePressed(MouseEvent e)
-	{
+	public void mousePressed(MouseEvent e) {
 		isDrawing = true;
 		draw(e);
 	}
 
 	@Override
-	public void mouseReleased(MouseEvent e)
-	{
+	public void mouseReleased(MouseEvent e) {
 		isDrawing = false;
 	}
 
 	@Override
-	public void mouseExited(MouseEvent e)
-	{
+	public void mouseExited(MouseEvent e) {
 		isDrawing = false;
 	}
 
 	@Override
-	public void mouseDragged(MouseEvent e)
-	{
-		if (isDrawing)
-		{
+	public void mouseDragged(MouseEvent e) {
+		if (isDrawing) {
 			draw(e);
 		}
 	}
 
 	@Override
-	public void mouseEntered(MouseEvent e)
-	{
+	public void mouseEntered(MouseEvent e) {
 	}
 
 
 	@Override
-	public void mouseMoved(MouseEvent e)
-	{
+	public void mouseMoved(MouseEvent e) {
 	}
 
-	public static void main(String[] args)
-	{
-		var frame = new JFrame("Handwritten Digit Drawer");
-		frame.add(new HandwrittenDrawer(null));
-		frame.pack();
-		frame.setResizable(false);
-		frame.setLocationRelativeTo(null);
-		frame.setVisible(true);
+	public static void main(String[] args) throws IOException {
+		var hd = new HandwrittenDrawer(null);
+		DeepNeuralNetwork nn = DeepNeuralNetwork.readFromFile(ComplexDigits.FILE);
+
+		var input = new double[10];
+		Arrays.fill(input, 0.0001);
+		input[8] = 0.9999;
+		double[] out = nn.inverse(input);
+
+		System.out.println(Arrays.toString(out));
+		hd.data = out;
+		hd.update();
 	}
 }
