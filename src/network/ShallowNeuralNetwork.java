@@ -61,7 +61,7 @@ public class ShallowNeuralNetwork extends NeuralNetwork {
 
 		Matrix expectedOutput = Matrix.asColumn(expected);
 
-		Matrix error = expectedOutput.subtract(outputActivations).multiply(2);
+		Matrix error = expectedOutput.subtract(outputActivations).scale(2);
 
 
 		// output layer gradient
@@ -73,8 +73,8 @@ public class ShallowNeuralNetwork extends NeuralNetwork {
 			Matrix weightGradient = biasGradient.multiply(delOutputToWeight);
 
 
-			outputBiases = outputBiases.subtract(biasGradient.multiply(learningRate));
-			hiddenToOutputWeights = hiddenToOutputWeights.subtract(weightGradient.multiply(learningRate));
+			outputBiases = outputBiases.subtract(biasGradient.scale(learningRate));
+			hiddenToOutputWeights = hiddenToOutputWeights.subtract(weightGradient.scale(learningRate));
 		}
 
 		// hidden layer gradient
@@ -87,8 +87,8 @@ public class ShallowNeuralNetwork extends NeuralNetwork {
 			Matrix biasGradient = error.dot(delActivationToHidden);
 			Matrix weightGradient = biasGradient.multiply(delHiddenToWeight);
 
-			hiddenBiases = hiddenBiases.subtract(biasGradient.multiply(learningRate));
-			inputToHiddenWeights = inputToHiddenWeights.subtract(weightGradient.multiply(learningRate));
+			hiddenBiases = hiddenBiases.subtract(biasGradient.scale(learningRate));
+			inputToHiddenWeights = inputToHiddenWeights.subtract(weightGradient.scale(learningRate));
 		}
 		return input;
 	}
