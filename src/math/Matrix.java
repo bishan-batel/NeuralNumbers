@@ -7,7 +7,7 @@ public class Matrix
 {
 	public final int rows, columns;
 
-	private final double[] values;
+	private final double[] buffer;
 
 	public final int BYTES;
 	public final int length;
@@ -15,7 +15,7 @@ public class Matrix
 	// Construcots
 
 	/**
-	 * Creates a new math.Matrix with the given width and height
+	 * Creates a new Matrix with the given width and height
 	 */
 	public Matrix(int rows, int column)
 	{
@@ -23,12 +23,12 @@ public class Matrix
 		this.columns = column;
 
 		if (this.rows < 1 || columns < 1)
-			throw new UnsupportedOperationException("Invalid math.Matrix Size, Expected " + this.rows + "x" + columns + ", got " + this.rows + "x" + columns);
+			throw new UnsupportedOperationException("Invalid Matrix Size, Expected " + this.rows + "x" + columns + ", got " + this.rows + "x" + columns);
 
 
 //		values = new double[rows][columns];
-		values = new double[rows * columns];
-		length = values.length;
+		buffer = new double[rows * columns];
+		length = buffer.length;
 
 
 		var byteCount = 0;
@@ -38,12 +38,12 @@ public class Matrix
 	}
 
 	/**
-	 * Creates a new math.Matrix a new column matrix with the given values
+	 * Creates a new Matrix a new column matrix with the given values
 	 */
 	public static Matrix asColumn(double[] array)
 	{
 		Matrix matrix = Matrix.column(array.length);
-		System.arraycopy(array, 0, matrix.values, 0, array.length);
+		System.arraycopy(array, 0, matrix.buffer, 0, array.length);
 		return matrix;
 	}
 
@@ -61,8 +61,8 @@ public class Matrix
 	public static Matrix random(int width, int height, double min, double max)
 	{
 		var matrix = new Matrix(width, height);
-		for (int i = 0; i < matrix.values.length; i++)
-			matrix.values[i] = Math.random() * (max - min) + min;
+		for (int i = 0; i < matrix.buffer.length; i++)
+			matrix.buffer[i] = Math.random() * (max - min) + min;
 
 		return matrix;
 	}
@@ -74,12 +74,12 @@ public class Matrix
 	public Matrix add(Matrix other)
 	{
 		if (rows != other.rows || columns != other.columns)
-			throw new UnsupportedOperationException("Invalid math.Matrix Size, Expected " + rows + "x" + columns + ", got " + other.rows + "x" + other.columns);
+			throw new UnsupportedOperationException("Invalid Matrix Size, Expected " + rows + "x" + columns + ", got " + other.rows + "x" + other.columns);
 
 		var result = new Matrix(rows, columns);
 
-		for (int i = 0; i < values.length; i++)
-			result.values[i] = values[i] + other.values[i];
+		for (int i = 0; i < buffer.length; i++)
+			result.buffer[i] = buffer[i] + other.buffer[i];
 
 		return result;
 	}
@@ -132,7 +132,7 @@ public class Matrix
 
 		// for each element in the matrix, add the corresponding element in the other matrix
 		for (int i = 0; i < length; i++)
-			result.values[i] = values[i] * other.values[i];
+			result.buffer[i] = buffer[i] * other.buffer[i];
 		return result;
 	}
 
@@ -142,7 +142,7 @@ public class Matrix
 		var result = new Matrix(rows, columns);
 
 		for (int i = 0; i < length; i++)
-			result.values[i] = map.apply(values[i]);
+			result.buffer[i] = map.apply(buffer[i]);
 		return result;
 	}
 
@@ -154,19 +154,20 @@ public class Matrix
 		for (int i = 0; i < rows; i++)
 			for (int j = 0; j < columns; j++)
 				result.set(j, i, get(i, j));
+
 		return result;
 	}
 
 
 	public void set(int r, int c, double value)
 	{
-		values[r * columns + c] = value;
+		buffer[r * columns + c] = value;
 	}
 
 	public double get(int r, int c)
 	{
 		// turn the row and column into a single index
-		return values[r * columns + c];
+		return buffer[r * columns + c];
 	}
 
 	public double[] asColumn()
@@ -175,21 +176,8 @@ public class Matrix
 			throw new UnsupportedOperationException("Invalid operation, Expected " + rows + "x" + columns + " to be a column matrix");
 
 		var result = new double[rows];
-		for (int i = 0; i < rows; i++)
-		{
-			result[i] = get(i, 0);
-		}
+		System.arraycopy(buffer, 0, result, 0, rows);
 		return result;
-	}
-
-	public double[] asRow()
-	{
-		var out = new double[rows];
-		for (int i = 0; i < rows; i++)
-		{
-			out[i] = get(i, 0);
-		}
-		return out;
 	}
 
 	public byte[] asBytes()
@@ -203,7 +191,7 @@ public class Matrix
 		buffer.putInt(rows);
 		buffer.putInt(columns);
 
-		for (double value : values) buffer.putDouble(value);
+		for (double value : this.buffer) buffer.putDouble(value);
 
 		return buffer.array();
 	}
@@ -217,19 +205,19 @@ public class Matrix
 	{
 		// check if there is enough space for 2 ints
 		if (buffer.capacity() - buffer.position() < Integer.BYTES * 2)
-			throw new IllegalArgumentException("Malformed bytes for math.Matrix");
+			throw new IllegalArgumentException("Malformed bytes for Matrix");
 
 		int width = buffer.getInt();
 		int height = buffer.getInt();
 
 		if (buffer.capacity() - buffer.position() < Double.BYTES * width * height)
-			throw new IllegalArgumentException("Malformed bytes for math.Matrix");
+			throw new IllegalArgumentException("Malformed bytes for Matrix");
 
 		var mat = new Matrix(width, height);
 
-		for (int i = 0; i < mat.values.length; i++)
+		for (int i = 0; i < mat.buffer.length; i++)
 		{
-			mat.values[i] = buffer.getDouble();
+			mat.buffer[i] = buffer.getDouble();
 		}
 
 		return mat;
